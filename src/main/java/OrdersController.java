@@ -38,7 +38,9 @@ public class OrdersController {
             logger.info("returned instrument {} history: {}", instrument.symbol(), history);
 
             logger.info("Placing buy order of {} for client: {}", instrument.symbol(), client.name());
-            final var buy = new SubmitOrder.Buy(instrument.symbol(), UUID.randomUUID().toString(), 30, 50);
+            final var buy = new SubmitOrder.Buy("OAT", UUID.randomUUID().toString(), 30, 50);
+            final var sell = new SubmitOrder.Sell("OAT", UUID.randomUUID().toString(), 30, 50);
+
             ValidatedOrder validatedBuy = marketPlugin.buy(buy);
             logger.info("validated buy: {}", validatedBuy);
         }
