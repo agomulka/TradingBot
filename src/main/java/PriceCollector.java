@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 // pobieramy jedną z nich, bo są takie same
 // zwracamy hashMape<Symbol instrumentu, lista cen>
 
-public class PriceCollector implements Runnable {
+public class PriceCollector {//  implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
     private MarketPlugin marketPlugin;
     HashMap<String, List<Long>> hashMap = new HashMap<>();
@@ -34,8 +34,8 @@ public class PriceCollector implements Runnable {
 //        this.queue = queue;
     }
 
-    @Override
-    public void run() {
+  //  @Override
+    public HashMap<String,List<Long>> run() {
 
         //download prices into hashMap
         Instruments instruments = marketPlugin.instruments();
@@ -54,13 +54,13 @@ public class PriceCollector implements Runnable {
                 }
             }
         }
-
-        try {
-            queue.put(hashMap);
-            TimeUnit.SECONDS.sleep(60);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+//
+//        try {
+//            queue.put(hashMap);
+//            TimeUnit.SECONDS.sleep(60);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+        return hashMap;
     }
 }

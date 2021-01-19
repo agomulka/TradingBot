@@ -1,3 +1,4 @@
+import model.Portfolio;
 import model.order.Client;
 
    // niepotrzebne, będzie w OrdersController

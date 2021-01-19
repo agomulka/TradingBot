@@ -1,11 +1,12 @@
 import model.Portfolio;
 import model.SubmitOrder;
-import model.order.Client;
-import model.order.ValidatedOrder;
+import model.Submitted;
+import model.order.SubmittedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SellingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
@@ -25,10 +26,10 @@ public class SellingStrategy implements TradingStrategy {
 
         //calculate average
 
-        for(String symbol : hashMapSold.keySet()){
+        for (String symbol : hashMapSold.keySet()) {
             Float sum = (float) 0;
             Float avg = (float) 0;
-            for(Long price : hashMapSold.get(symbol)){
+            for (Long price : hashMapSold.get(symbol)) {
                 sum += price;
             }
             avg = sum / hashMapSold.get(symbol).size();
@@ -40,14 +41,25 @@ public class SellingStrategy implements TradingStrategy {
         //zakładam że cena z poprzedniego dnia to cena następna na liście
         //              (istnieje przypadek że jest z tego samego dnia)
 
+
+        //pobranie akutalnej listy instrumentow z portfela
         Boolean signalToSold = false;
-        for(String symbol : hashMapSold.keySet()) {
-            Float averagePrice = hashMapSoldAvg.get(symbol);
-            List<Long> longs = hashMapSold.get(symbol);
-            Float closingPrice = longs.get(0).floatValue();
-            Float yesterdayPrice = longs.get(1).floatValue();
-            if(averagePrice >= closingPrice && averagePrice <= yesterdayPrice){
-                signalToSold = true;
+        Portfolio portfolio = marketPlugin.portfolio();
+        List<String> instrumentInPortfolio;
+        if (portfolio instanceof Portfolio.Current pc) {
+            instrumentInPortfolio = pc.portfolio().stream().map(x -> x.instrument().symbol())
+                    .collect(Collectors.toList());
+
+
+            for (String symbol : instrumentInPortfolio) {
+                //   for (String symbol : hashMapSold.keySet()) {
+                Float averagePrice = hashMapSoldAvg.get(symbol);
+                List<Long> prices = hashMapSold.get(symbol);
+                Float closingPrice = prices.get(0).floatValue();
+                Float yesterdayPrice = prices.get(1).floatValue();
+                if (averagePrice >= closingPrice && averagePrice <= yesterdayPrice) {
+                    signalToSold = true;
+                }
             }
         }
 
@@ -55,15 +67,15 @@ public class SellingStrategy implements TradingStrategy {
 
         int instrumentNumber = hashMapSold.keySet().size();
         int percent = 100/instrumentNumber;
-        int maxPortfolio = 10000;
+       // int maxPortfolio = 10000;
         Long portfolioValue;
-        Portfolio portfolio = marketPlugin.portfolio();
-
+      //  Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
+            portfolioValue = pc.cash();
             for (String symbol : hashMapSold.keySet()) {
                 List<Long> longs = hashMapSold.get(symbol);
                 Long closingPrice = longs.get(0);
-                float quality = (maxPortfolio * percent) / (100 * closingPrice);  //numbers of share to sell
+                float quality = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
 
                 if( signalToSold == true){
                     String tradeID = UUID.randomUUID().toString();
@@ -71,7 +83,7 @@ public class SellingStrategy implements TradingStrategy {
                     long qualityLong = q.longValue();
 //                    Double cp = Math.floor(closingPrice);
 //                    long cpp = cp.longValue();
-                    if(checkNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
+                    if(checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
                         SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
                         queueToSell.add(order);
                     }
@@ -93,8 +105,28 @@ public class SellingStrategy implements TradingStrategy {
         }
 
     }
-}
 
+    @Override
+    public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
+//        Submitted submitted = marketPlugin.submitted();
+//        if (submitted instanceof Submitted.Correct sc) {
+//            Optional<SubmittedOrder.Sell> any = sc.sell().stream()
+//                    .filter(sell -> sell.instrument().symbol().equals(symbol)
+//                            && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
+//                    .findAny();
+//            return any.isEmpty();  //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
+//        }
+//        return false;
+        Portfolio portfolio = marketPlugin.portfolio();
+        if(portfolio instanceof Portfolio.Current pc){
+            Optional<SubmittedOrder.Sell> any = pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
+                    && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
+                    .findAny();
+            return any.isEmpty(); //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
+        }
+        return false;
+    }
+}
 
 
 
