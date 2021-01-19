@@ -14,6 +14,6 @@ public sealed interface Portfolio {
     record Failed(String message) implements Portfolio {
     }
 
-    record PortfolioElement(Instrument instrument, long qty) {
+    record PortfolioElement(Instrument instrument, long qty){
     }
 }
