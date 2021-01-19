@@ -1,0 +1,101 @@
+import model.Portfolio;
+import model.SubmitOrder;
+import model.order.Client;
+import model.order.ValidatedOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+public class SellingStrategy implements TradingStrategy {
+    private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
+    private MarketPlugin marketPlugin;
+    List<HashMap<String, List<Long>>> list;
+    HashMap<String, List<Long>> hashMapSold = new HashMap<>();
+    HashMap<String, Float> hashMapSoldAvg = new HashMap<>();
+    Queue<SubmitOrder.Sell> queueToSell = new LinkedList<>();
+
+    public SellingStrategy(MarketPlugin marketPlugin, HashMap<String, List<Long>> hashMap) {
+        this.marketPlugin = marketPlugin;
+        this.hashMapSold = hashMap;
+    }
+
+    @Override
+    public void trading() {
+
+        //calculate average
+
+        for(String symbol : hashMapSold.keySet()){
+            Float sum = (float) 0;
+            Float avg = (float) 0;
+            for(Long price : hashMapSold.get(symbol)){
+                sum += price;
+            }
+            avg = sum / hashMapSold.get(symbol).size();
+            hashMapSoldAvg.put(symbol, avg);
+        }
+
+
+        //deciding to sell on Moving average  (średnia krocząca)
+        //zakładam że cena z poprzedniego dnia to cena następna na liście
+        //              (istnieje przypadek że jest z tego samego dnia)
+
+        Boolean signalToSold = false;
+        for(String symbol : hashMapSold.keySet()) {
+            Float averagePrice = hashMapSoldAvg.get(symbol);
+            List<Long> longs = hashMapSold.get(symbol);
+            Float closingPrice = longs.get(0).floatValue();
+            Float yesterdayPrice = longs.get(1).floatValue();
+            if(averagePrice >= closingPrice && averagePrice <= yesterdayPrice){
+                signalToSold = true;
+            }
+        }
+
+        //dywersyfikacja portfela dla sprzedaży
+
+        int instrumentNumber = hashMapSold.keySet().size();
+        int percent = 100/instrumentNumber;
+        int maxPortfolio = 10000;
+        Long portfolioValue;
+        Portfolio portfolio = marketPlugin.portfolio();
+
+        if (portfolio instanceof Portfolio.Current pc) {
+            for (String symbol : hashMapSold.keySet()) {
+                List<Long> longs = hashMapSold.get(symbol);
+                Long closingPrice = longs.get(0);
+                float quality = (maxPortfolio * percent) / (100 * closingPrice);  //numbers of share to sell
+
+                if( signalToSold == true){
+                    String tradeID = UUID.randomUUID().toString();
+                    Double q = Math.floor(quality);
+                    long qualityLong = q.longValue();
+//                    Double cp = Math.floor(closingPrice);
+//                    long cpp = cp.longValue();
+                    if(checkNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
+                        SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
+                        queueToSell.add(order);
+                    }
+                }
+            }
+        }
+
+        //obsługa kolejki zleceń
+        Long portfolioValueNew;
+        for (SubmitOrder.Sell item: queueToSell) {
+            Portfolio portfolioNew = marketPlugin.portfolio();
+            if (portfolioNew instanceof Portfolio.Current pc) {
+                portfolioValueNew = pc.cash();
+                if (item.ask() * item.qty() < portfolioValueNew) {      //check if we have enough money
+                 //   ValidatedOrder validatedBuy =
+                    marketPlugin.sell(item);
+                }
+            }
+        }
+
+    }
+}
+
+
+
+
+
