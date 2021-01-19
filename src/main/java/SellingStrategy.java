@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class SellingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
-    private MarketPlugin marketPlugin;
+    private final MarketPlugin marketPlugin;
     List<HashMap<String, List<Long>>> list;
     HashMap<String, List<Long>> hashMapSold = new HashMap<>();
     HashMap<String, Float> hashMapSoldAvg = new HashMap<>();
@@ -52,7 +52,6 @@ public class SellingStrategy implements TradingStrategy {
 
 
             for (String symbol : instrumentInPortfolio) {
-                //   for (String symbol : hashMapSold.keySet()) {
                 Float averagePrice = hashMapSoldAvg.get(symbol);
                 List<Long> prices = hashMapSold.get(symbol);
                 Float closingPrice = prices.get(0).floatValue();
@@ -81,8 +80,6 @@ public class SellingStrategy implements TradingStrategy {
                     String tradeID = UUID.randomUUID().toString();
                     Double q = Math.floor(quality);
                     long qualityLong = q.longValue();
-//                    Double cp = Math.floor(closingPrice);
-//                    long cpp = cp.longValue();
                     if(checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
                         SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
                         queueToSell.add(order);
@@ -98,7 +95,6 @@ public class SellingStrategy implements TradingStrategy {
             if (portfolioNew instanceof Portfolio.Current pc) {
                 portfolioValueNew = pc.cash();
                 if (item.ask() * item.qty() < portfolioValueNew) {      //check if we have enough money
-                 //   ValidatedOrder validatedBuy =
                     marketPlugin.sell(item);
                 }
             }

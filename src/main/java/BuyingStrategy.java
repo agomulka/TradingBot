@@ -11,14 +11,13 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 public class BuyingStrategy implements TradingStrategy {
-    private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
-    private MarketPlugin marketPlugin;
+    private final MarketPlugin marketPlugin;
     List<HashMap<String, List<Long>>> list;
     HashMap<String, List<Long>> hashMapBought = new HashMap<>();
     HashMap<String, Float> hashMapBoughtAvg = new HashMap<>();
     Queue<HashMap<String, List<Long>>> queue;
     Queue<SubmitOrder.Buy> queueToBuy = new LinkedList<>();
-    ;
+
 
     public BuyingStrategy(MarketPlugin marketPlugin, HashMap<String, List<Long>> hashMap) {
         this.marketPlugin = marketPlugin;
@@ -59,7 +58,6 @@ public class BuyingStrategy implements TradingStrategy {
 
         int instrumentNumber = hashMapBought.keySet().size();
         int percent = 100 / instrumentNumber;
-     //   int maxPortfolio = 10000;
         Long portfolioValue;
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
@@ -101,15 +99,6 @@ public class BuyingStrategy implements TradingStrategy {
 
     @Override
     public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
-//        Submitted submitted = marketPlugin.submitted();
-//        if (submitted instanceof Submitted.Correct sc) {
-//            Optional<SubmittedOrder.Buy> any = sc.buy().stream()
-//                    .filter(buy -> buy.instrument().symbol().equals(symbol)
-//                            && buy.bid().qty() == qualityLong && buy.bid().price() == closingPrice)
-//                    .findAny();
-//            return any.isEmpty();  //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
-//        }
-//        return false;     //jak submitted nie jest correct to coś się dzieje dziwnego
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
             Optional<SubmittedOrder.Buy> any = pc.toBuy().stream()

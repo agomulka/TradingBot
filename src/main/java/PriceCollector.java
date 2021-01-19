@@ -20,21 +20,15 @@ import java.util.stream.Collectors;
 // pobieramy jedną z nich, bo są takie same
 // zwracamy hashMape<Symbol instrumentu, lista cen>
 
-public class PriceCollector {//  implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(PriceCollector.class);
-    private MarketPlugin marketPlugin;
+public class PriceCollector {
+    private final MarketPlugin marketPlugin;
     HashMap<String, List<Long>> hashMap = new HashMap<>();
-   // HashMap<String, List<Long>> hashMapSold = new HashMap<>();
-   // List<HashMap<String, List<Long>>> list;
    BlockingQueue<HashMap<String, List<Long>>> queue = new LinkedBlockingQueue<>();
 
     public PriceCollector(MarketPlugin marketPlugin) {
         this.marketPlugin = marketPlugin;
- //       this.hashMap = hashMapBought;
-//        this.queue = queue;
     }
 
-  //  @Override
     public HashMap<String,List<Long>> run() {
 
         //download prices into hashMap
@@ -47,20 +41,13 @@ public class PriceCollector {//  implements Runnable {
                 history = marketPlugin.history(instr);
                 if (history instanceof History.Correct hc) {
                     priceList = hc.bought().stream()
-                            .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
+                            .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed()) // tu gdzieś limit
                             .map(x -> x.offer().price()).collect(Collectors.toList());
 
                     hashMap.put(instr.symbol(), priceList);
                 }
             }
         }
-//
-//        try {
-//            queue.put(hashMap);
-//            TimeUnit.SECONDS.sleep(60);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
         return hashMap;
     }
 }
