@@ -26,7 +26,7 @@ public class OrdersController {
         BuyingStrategy buyingStrategy;
         SellingStrategy sellingStrategy;
         while(true){
-            HashMap<String, List<Long>> hashMap = priceCollector.run();
+            HashMap<String, List<Long>> hashMap = priceCollector.collectPrices();
             buyingStrategy = new BuyingStrategy(marketPlugin, hashMap);
             sellingStrategy = new SellingStrategy(marketPlugin, hashMap);
             buyingStrategy.trade();
