@@ -22,7 +22,7 @@ public class SellingStrategy implements TradingStrategy {
     }
 
     @Override
-    public void trading() {
+    public void trade() {
 
         //calculate average
 

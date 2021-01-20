@@ -40,7 +40,7 @@ public class Tasks {
                     .stream()
                     .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
                     .mapToLong(s -> s.offer().price())
-                    .limit(n+1).skip(1).average().orElse(0);
+                    .limit(n + 1).skip(1).average().orElse(0);
         }
         return avg;
     }
@@ -59,34 +59,35 @@ public class Tasks {
     }
 
     //Sprawdza czy posiadamy dany instrument w portfelu
-    public boolean CanISell(Instrument instrument, Portfolio portfolio){
+    public boolean CanISell(Instrument instrument, Portfolio portfolio) {
         boolean contains;
         if (portfolio instanceof Portfolio.Current pc) {
-            contains = pc.portfolio().stream().noneMatch(s->s.instrument().equals(instrument));
-        }
-        else contains = false;
+            contains = pc.portfolio().stream().noneMatch(s -> s.instrument().equals(instrument));
+        } else contains = false;
         return contains;
     }
 
     public long SellQty(Instrument instrument, Portfolio portfolio) {
+        // TODO
         //jak dywersyfikowac
         return 1;
     }
 
 
     public long BuyQty(Instrument instrument, Portfolio portfolio) {
+        // TODO
         //jak dywersyfikowac?
         return 1;
     }
 
-    public void Sell(Instrument instrument, long qty, long price){
+    public void Sell(Instrument instrument, long qty, long price) {
         logger.info("Placing sell order of {} ", instrument.symbol());
         final var sell = new SubmitOrder.Sell(instrument.symbol(), UUID.randomUUID().toString(), qty, price);
         ValidatedOrder validatedSell = marketPlugin.sell(sell);
         logger.info("validated sell: {}", validatedSell);
     }
 
-    public void Buy(Instrument instrument, long qty, long price){
+    public void Buy(Instrument instrument, long qty, long price) {
         logger.info("Placing buy order of {} ", instrument.symbol());
         final var buy = new SubmitOrder.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, price);
         ValidatedOrder validatedSell = marketPlugin.buy(buy);
@@ -96,8 +97,8 @@ public class Tasks {
     //Okresla polozenie srednich wzgledem siebie. Gdy wykresy przecinaja sie (nastepuje zmiana z 0 na 1 lub 1 na 0) mamy sygnal do sprzedazy lub kupna
     public int signal(double a, double b) {
         int signal = 3;
-        if(a>b) signal = 1;
-        else if(a<b) signal = 0;
+        if (a > b) signal = 1;
+        else if (a < b) signal = 0;
         return signal;
     }
 

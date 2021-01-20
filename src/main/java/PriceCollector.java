@@ -23,15 +23,15 @@ import java.util.stream.Collectors;
 public class PriceCollector {
     private final MarketPlugin marketPlugin;
     HashMap<String, List<Long>> hashMap = new HashMap<>();
-   BlockingQueue<HashMap<String, List<Long>>> queue = new LinkedBlockingQueue<>();
+    BlockingQueue<HashMap<String, List<Long>>> queue = new LinkedBlockingQueue<>();
 
     public PriceCollector(MarketPlugin marketPlugin) {
         this.marketPlugin = marketPlugin;
     }
 
-    public HashMap<String,List<Long>> run() {
+    public HashMap<String, List<Long>> run() {
 
-        //download prices into hashMap
+        //download prices, sort them and put into hashMap
         Instruments instruments = marketPlugin.instruments();
         List<Long> priceList;
 
@@ -41,7 +41,7 @@ public class PriceCollector {
                 history = marketPlugin.history(instr);
                 if (history instanceof History.Correct hc) {
                     priceList = hc.bought().stream()
-                            .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed()) // tu gdzieś limit
+                            .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
                             .map(x -> x.offer().price()).collect(Collectors.toList());
 
                     hashMap.put(instr.symbol(), priceList);

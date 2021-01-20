@@ -1,6 +1,6 @@
 import model.order.Client;
 
 public interface TradingStrategy {
-    void trading();
+    void trade();
     boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice);
 }

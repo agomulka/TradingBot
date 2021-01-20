@@ -25,7 +25,7 @@ public class BuyingStrategy implements TradingStrategy {
     }
 
     @Override
-    public void trading() {
+    public void trade() {
         //calculate average
 
         for (String symbol : hashMapBought.keySet()) {
