@@ -1,13 +1,10 @@
 import model.Portfolio;
 import model.SubmitOrder;
-import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -26,10 +23,10 @@ public class SellingStrategy implements TradingStrategy {
     public void trade() {
         Portfolio portfolio = marketPlugin.portfolio();
 
-        if (portfolio instanceof Portfolio.Current pc) {
-            final var cash = pc.cash();
-            logger.info("Available cash: {}", cash);
-        }
+//        if (portfolio instanceof Portfolio.Current pc) {
+//            final var cash = pc.cash();
+//            logger.info("Available cash: {}", cash);
+//        }
 
         HashMap<String, Double> shortAveragesLast = averagesTasker.getAveragePrices(true, true);
         HashMap<String, Double> shortAveragesBefore = averagesTasker.getAveragePrices(true, false);
@@ -45,10 +42,12 @@ public class SellingStrategy implements TradingStrategy {
 
             final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
 
-            if (position == -1 && canISell(symbol, portfolio)) {
+            if (position == -1) {
                 final var price = getLastPrice(symbol);
                 final var qty = SellQty(symbol, portfolio);
-                Sell(symbol, qty, (long) (1.1 * price));
+                if (qty > 0 && checkIfNotSubmitted(symbol, qty, price)) {
+                    Sell(symbol, qty, price);
+                }
             }
         }
     }
@@ -60,40 +59,34 @@ public class SellingStrategy implements TradingStrategy {
         logger.info("validated sell: {}", validatedSell);
     }
 
-    //dywersyfikacja portfela dla sprzedaży
+    //zwroci 0 jeśli nie mamy danej akcji w portfelu
     public long SellQty(String symbol, Portfolio portfolio) {
-        // TODO
-        //jak dywersyfikowac
         long amount = (long) averagesTasker.getAverageAmount(symbol);
-        amount = Math.min(amount, portfolio); // TODO TUTAJ
-        return amount;
-
-        int instrumentNumber = hashMapSold.keySet().size();
-        int percent = 100 / instrumentNumber;
-        // int maxPortfolio = 10000;
-        Long portfolioValue;
         if (portfolio instanceof Portfolio.Current pc) {
-            portfolioValue = pc.cash();
-            for (String symbol : hashMapSold.keySet()) {
-                List<Long> longs = hashMapSold.get(symbol);
-                Long closingPrice = longs.get(0);
-                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
+            if (canISell(symbol, portfolio)) {
+                final var qtyInPortfolio = pc.portfolio().stream().findFirst().filter(sell -> sell.instrument().symbol().equals(symbol)).get().qty();
+                return Math.min(amount, qtyInPortfolio);
+            } else return 0;
+        } else return 0;
 
-                if (signalToSell == true) { // chyba bez tego
-                    String tradeID = UUID.randomUUID().toString();
-                    Double q = Math.floor(quantity);
-                    long qualityLong = q.longValue();
-                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
-                        SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
-                        queueToSell.add(order);
-                    }
-                }
-            }
-        }
-        return 1;
+//        int instrumentNumber = hashMapSold.keySet().size();
+//        int percent = 100 / instrumentNumber;
+//        // int maxPortfolio = 10000;
+//        Long portfolioValue;
+//        if (portfolio instanceof Portfolio.Current pc) {
+//            portfolioValue = pc.cash();
+//            for (String symbol : hashMapSold.keySet()) {
+//                List<Long> longs = hashMapSold.get(symbol);
+//                Long closingPrice = longs.get(0);
+//                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
+//
+//            }
+//        }
+
+
     }
 
-    //Sprawdza czy posiadamy dany instrument w portfelu
+    //Sprawdza czy posiadamy dany instrument w portfelu i czy nie ma wystawionej juz takiej akcji
     public boolean canISell(String symbol, Portfolio portfolio) {
         boolean contains;
         if (portfolio instanceof Portfolio.Current pc) {
@@ -108,22 +101,12 @@ public class SellingStrategy implements TradingStrategy {
     }
 
     @Override
-    public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
-//        Submitted submitted = marketPlugin.submitted();
-//        if (submitted instanceof Submitted.Correct sc) {
-//            Optional<SubmittedOrder.Sell> any = sc.sell().stream()
-//                    .filter(sell -> sell.instrument().symbol().equals(symbol)
-//                            && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
-//                    .findAny();
-//            return any.isEmpty();  //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
-//        }
-//        return false;
+    public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
-            Optional<SubmittedOrder.Sell> any = pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
-                    && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
-                    .findAny();
-            return any.isEmpty(); //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
+            return pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
+                    && sell.ask().qty() == qty && sell.ask().price() == price)
+                    .findAny().isEmpty();
         }
         return false;
     }

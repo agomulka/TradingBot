@@ -34,7 +34,6 @@ public class MovingAveragesTasker {
         this.prices = collector.collectAmounts();
     }
 
-
     // srednie uwzględniające ostatnie transakcje dla wszystkich instrumentów
     public HashMap<String, Double> getAveragePrices(boolean inShortPeriod, boolean withLastPrice) {
         HashMap<String, Double> averages = new HashMap<>();
@@ -58,7 +57,7 @@ public class MovingAveragesTasker {
         }
 
         if (list.size() == 0)
-            return 0
+            return 0;
 
         return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size(); // coś miało problem użycie .average() od razu
     }
