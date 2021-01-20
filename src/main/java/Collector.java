@@ -14,12 +14,11 @@ import java.util.stream.Collectors;
 
 // pobrana jest historia w całości, gotowa do dalszych przeróbek
 
-// generalnie gotowe
 
-public class PriceCollector {
+public class Collector {
     private final MarketPlugin marketPlugin;
 
-    public PriceCollector(MarketPlugin marketPlugin) {
+    public Collector(MarketPlugin marketPlugin) {
         this.marketPlugin = marketPlugin;
     }
 
@@ -38,6 +37,29 @@ public class PriceCollector {
                     priceList = hc.bought().stream()
                             .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
                             .map(x -> x.offer().price()).collect(Collectors.toList());
+
+                    hashMap.put(instrument.symbol(), priceList);
+                }
+            }
+        }
+        return hashMap;
+    }
+
+    public HashMap<String, List<Long>> collectAmounts() {
+        HashMap<String, List<Long>> hashMap = new HashMap<>();
+
+        //download prices, sort them and put into hashMap
+        Instruments instruments = marketPlugin.instruments();
+        List<Long> priceList;
+
+        if (instruments instanceof Instruments.Correct ic) {
+            History history;
+            for (Instrument instrument : ic.available()) {
+                history = marketPlugin.history(instrument);
+                if (history instanceof History.Correct hc) {
+                    priceList = hc.bought().stream()
+                            .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
+                            .map(x -> x.offer().qty()).collect(Collectors.toList());
 
                     hashMap.put(instrument.symbol(), priceList);
                 }

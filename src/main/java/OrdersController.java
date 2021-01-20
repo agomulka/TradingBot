@@ -1,9 +1,8 @@
-import model.*;
+import model.Instruments;
 import model.order.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -22,13 +21,14 @@ public class OrdersController {
     }
 
     public void run() {
-        PriceCollector priceCollector = new PriceCollector(marketPlugin);
-        MovingAveragesTasker averagesTasker = new MovingAveragesTasker(priceCollector, 5, 30);
+        Collector collector = new Collector(marketPlugin);
+        MovingAveragesTasker averagesTasker = new MovingAveragesTasker(collector, 5, 30, 10);
         BuyingStrategy buyingStrategy = new BuyingStrategy(marketPlugin, averagesTasker);
         SellingStrategy sellingStrategy = new SellingStrategy(marketPlugin, averagesTasker);
 
-        while(true){
+        while (true) {
             averagesTasker.updatePrices();
+            averagesTasker.updateAmounts();
             buyingStrategy.trade();
             sellingStrategy.trade();
             //TimeUnit.SECONDS(60);

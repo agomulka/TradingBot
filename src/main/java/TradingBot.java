@@ -2,6 +2,7 @@ import model.order.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class TradingBot {
     private static final Client client = new Client("client03");
     private static final String password = "Jwnkq3JA";

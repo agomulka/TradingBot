@@ -1,25 +1,21 @@
-import model.History;
 import model.Portfolio;
 import model.SubmitOrder;
-import model.order.Instrument;
-import model.order.ProcessedOrder;
 import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
-// generalnie gotowe
 
 public class BuyingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final MarketPlugin marketPlugin;
 
     private final MovingAveragesTasker averagesTasker;
-
-    HashMap<String, List<Long>> hashMapBought = new HashMap<>();
-    Queue<SubmitOrder.Buy> queueToBuy = new LinkedList<>();
 
 
     public BuyingStrategy(MarketPlugin marketPlugin, MovingAveragesTasker averagesTasker) {
@@ -29,21 +25,17 @@ public class BuyingStrategy implements TradingStrategy {
 
     @Override
     public void trade() {
-
-
-
         Portfolio portfolio = marketPlugin.portfolio();
-
 
         if (portfolio instanceof Portfolio.Current pc) {
             final var cash = pc.cash();
             logger.info("Available cash: {}", cash);
         }
 
-        HashMap<String, Double> shortAveragesLast = averagesTasker.getAverages(true, true);
-        HashMap<String, Double> shortAveragesBefore = averagesTasker.getAverages(true, false);
-        HashMap<String, Double> longAveragesLast = averagesTasker.getAverages(false, true);
-        HashMap<String, Double> longAveragesBefore = averagesTasker.getAverages(false, false);
+        HashMap<String, Double> shortAveragesLast = averagesTasker.getAveragePrices(true, true);
+        HashMap<String, Double> shortAveragesBefore = averagesTasker.getAveragePrices(true, false);
+        HashMap<String, Double> longAveragesLast = averagesTasker.getAveragePrices(false, true);
+        HashMap<String, Double> longAveragesBefore = averagesTasker.getAveragePrices(false, false);
 
         for (String symbol : shortAveragesLast.keySet()) {
 
@@ -55,40 +47,30 @@ public class BuyingStrategy implements TradingStrategy {
             final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
 
             if (position == 1) { // tutaj sprawdzanie portfela? w tym miejscu w SellingStrategy jest sprawdzanie CanISell
-                final var price = getPrice(instrument); // TODO obie strategie
-                final var qty = BuyQty(instrument, portfolio);
-                Buy(instrument, qty, price);
-            }
-        }
-
-
-        //obsługa kolejki zleceń
-        Long portfolioValueNew;
-        for (SubmitOrder.Buy item : queueToBuy) {
-            Portfolio portfolioNew = marketPlugin.portfolio();
-            if (portfolio instanceof Portfolio.Current pc) {
-                portfolioValueNew = pc.cash();
-                if (item.bid() * item.qty() < portfolioValueNew) {
-                    //   ValidatedOrder validatedBuy =
-                    marketPlugin.buy(item);
+                final var price = getLastPrice(symbol);
+                final var qty = BuyQty(symbol, portfolio);
+                if (canIBuy(symbol, portfolio)) {
+                    Buy(symbol, qty, price);
                 }
             }
         }
-
-
     }
 
-    public void Buy(Instrument instrument, long qty, long price) {
-        logger.info("Placing buy order of {} ", instrument.symbol());
-        final var buy = new SubmitOrder.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, price);
+    public void Buy(String symbol, long qty, long price) {
+        logger.info("Placing buy order of {} ", symbol);
+        final var buy = new SubmitOrder.Buy(symbol, UUID.randomUUID().toString(), qty, price);
         ValidatedOrder validatedSell = marketPlugin.buy(buy);
         logger.info("validated buy: {}", validatedSell);
     }
 
     //dywersyfikacja portfela
-    public long BuyQty(Instrument instrument, Portfolio portfolio) {
+    public long BuyQty(String symbol, Portfolio portfolio) {
         // TODO
         //jak dywersyfikowac?
+
+        long amount = (long) averagesTasker.getAverageAmount(symbol);
+        return amount;
+
         int instrumentNumber = hashMapBought.keySet().size();
         int percent = 100 / instrumentNumber;
         Long portfolioValue;
@@ -116,17 +98,18 @@ public class BuyingStrategy implements TradingStrategy {
         return 1;
     }
 
+    // sprawdzić czy wystarcza gotówki na zakup uwzględniając wiszące oferty
+    public boolean canIBuy(String symbol, Portfolio portfolio) {
+        boolean contains;
+        if (portfolio instanceof Portfolio.Current pc) {
+            contains = pc.portfolio().stream().noneMatch(s -> s.instrument().symbol().equals(symbol));
+        } else contains = false;
+        return contains;
+    }
+
     //Pobiera cene ostatniej zrealizowanej transakcji
-    public long getPrice(Instrument instrument) {
-        long price = 0;
-        History history = marketPlugin.history(instrument);
-        if (history instanceof History.Correct hc) {
-            price = hc.bought()
-                    .stream()
-                    .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
-                    .mapToLong(s -> s.offer().price()).findFirst().orElse(0);
-        }
-        return price;
+    public long getLastPrice(String symbol) {
+        return averagesTasker.getPrices().get(symbol).get(0);
     }
 
     @Override
