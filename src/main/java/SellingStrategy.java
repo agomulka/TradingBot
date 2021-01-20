@@ -96,7 +96,7 @@ public class SellingStrategy implements TradingStrategy {
                 Long closingPrice = longs.get(0);
                 float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
 
-                if( signalToSold == true) { // chyba bez tego
+                if( signalToSell == true) { // chyba bez tego
                     String tradeID = UUID.randomUUID().toString();
                     Double q = Math.floor(quantity);
                     long qualityLong = q.longValue();
@@ -153,7 +153,3 @@ public class SellingStrategy implements TradingStrategy {
         return false;
     }
 }
-
-
-
-

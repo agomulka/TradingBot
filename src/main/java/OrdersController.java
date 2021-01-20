@@ -23,19 +23,18 @@ public class OrdersController {
 
     public void run() {
         PriceCollector priceCollector = new PriceCollector(marketPlugin);
-        BuyingStrategy buyingStrategy;
-        SellingStrategy sellingStrategy;
+        MovingAveragesTasker averagesTasker = new MovingAveragesTasker(priceCollector, 5, 30);
+        BuyingStrategy buyingStrategy = new BuyingStrategy(marketPlugin, averagesTasker);
+        SellingStrategy sellingStrategy = new SellingStrategy(marketPlugin, averagesTasker);
+
         while(true){
-            HashMap<String, List<Long>> hashMap = priceCollector.collectPrices();
-            buyingStrategy = new BuyingStrategy(marketPlugin, hashMap);
-            sellingStrategy = new SellingStrategy(marketPlugin, hashMap);
+            averagesTasker.updatePrices();
             buyingStrategy.trade();
             sellingStrategy.trade();
             //TimeUnit.SECONDS(60);
         }
 
-        // tu od Kasii poczatek, wyzej od Oli
-        // ogolnie do zmiany
+        // góra albo dół do usunięcia
 
         Instruments instruments = marketPlugin.instruments();
         logger.info("returned available instruments: {}", instruments);
@@ -43,9 +42,10 @@ public class OrdersController {
         TimerTask sessionTask = new TimerTask() {
             @Override
             public void run() {
-                new Algorithm(marketPlugin).run();
+                buyingStrategy.trade();
+                sellingStrategy.trade();
             }
         };
-        new Timer().scheduleAtFixedRate(sessionTask,0,SESSION_INTERVAL);
+        new Timer().scheduleAtFixedRate(sessionTask,0, SESSION_INTERVAL);
     }
 }
