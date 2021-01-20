@@ -5,79 +5,62 @@ import model.order.Instrument;
 import model.order.ProcessedOrder;
 import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+// generalnie gotowe
+
 public class BuyingStrategy implements TradingStrategy {
+    private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final MarketPlugin marketPlugin;
-    List<HashMap<String, List<Long>>> list;
+
+    private final MovingAveragesTasker averagesTasker;
+
     HashMap<String, List<Long>> hashMapBought = new HashMap<>();
-    HashMap<String, Float> hashMapBoughtAvg = new HashMap<>();
-    Queue<HashMap<String, List<Long>>> queue;
     Queue<SubmitOrder.Buy> queueToBuy = new LinkedList<>();
 
 
-    public BuyingStrategy(MarketPlugin marketPlugin, HashMap<String, List<Long>> hashMap) {
+    public BuyingStrategy(MarketPlugin marketPlugin, MovingAveragesTasker averagesTasker) {
         this.marketPlugin = marketPlugin;
-        this.hashMapBought = hashMap;
+        this.averagesTasker = averagesTasker;
     }
 
     @Override
     public void trade() {
-        //calculate average
-
-        for (String symbol : hashMapBought.keySet()) {
-            Float sum = (float) 0;
-            Float avg = (float) 0;
-            for (Long price : hashMapBought.get(symbol)) {
-                sum += price;
-            }
-            avg = sum / hashMapBought.get(symbol).size();
-            hashMapBoughtAvg.put(symbol, avg);
-        }
-
-        //deciding to buy on Moving average  (średnia krocząca)
-        //zakładam że cena z poprzedniego dnia to cena następna na liście
-        //              (istnieje przypadek że jest z tego samego dnia)
-        Boolean signalToBuy = false;
-
-        for (String symbol : hashMapBought.keySet()) {
-            Float averagePrice = hashMapBoughtAvg.get(symbol);
-            List<Long> longs = hashMapBought.get(symbol);
-            Float closingPrice = longs.get(0).floatValue();
-            Float yesterdayPrice = longs.get(1).floatValue();
-            if (averagePrice <= closingPrice && averagePrice > yesterdayPrice) {
-                signalToBuy = true;
-            }
-        }
 
 
-        //dywersyfikacja portfela
 
-        int instrumentNumber = hashMapBought.keySet().size();
-        int percent = 100 / instrumentNumber;
-        Long portfolioValue;
         Portfolio portfolio = marketPlugin.portfolio();
-        if (portfolio instanceof Portfolio.Current pc) {
-            portfolioValue = pc.cash();
 
-            for (String symbol : hashMapBought.keySet()) {
-                List<Long> prices = hashMapBought.get(symbol);
-                Long closingPrice = prices.get(0);
-                float quality = (portfolioValue * percent) / (100 * closingPrice);  //number of shares to buy
-                if (signalToBuy == true) {
-                    String tradeID = UUID.randomUUID().toString();
-                    Double q = Math.floor(quality);
-                    long qualityLong = q.longValue();
-                    //Double cp = Math.floor(closingPrice);
-                    //long closingPriceLong = cp.longValue();
-                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {    //sprawdza czy nie zostało wystawione takie zlecenie
-                        SubmitOrder.Buy order = new SubmitOrder.Buy(symbol, tradeID, qualityLong, closingPrice);
-                        queueToBuy.add(order);
-                    }
-                }
+
+        if (portfolio instanceof Portfolio.Current pc) {
+            final var cash = pc.cash();
+            logger.info("Available cash: {}", cash);
+        }
+
+        HashMap<String, Double> shortAveragesLast = averagesTasker.getAverages(true, true);
+        HashMap<String, Double> shortAveragesBefore = averagesTasker.getAverages(true, false);
+        HashMap<String, Double> longAveragesLast = averagesTasker.getAverages(false, true);
+        HashMap<String, Double> longAveragesBefore = averagesTasker.getAverages(false, false);
+
+        for (String symbol : shortAveragesLast.keySet()) {
+
+            final var avgS = shortAveragesLast.get(symbol);
+            final var avgSB = shortAveragesBefore.get(symbol);
+            final var avgL = longAveragesLast.get(symbol);
+            final var avgLB = longAveragesBefore.get(symbol);
+
+            final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
+
+            if (position == 1) { // tutaj sprawdzanie portfela? w tym miejscu w SellingStrategy jest sprawdzanie CanISell
+                final var price = getPrice(instrument); // TODO obie strategie
+                final var qty = BuyQty(instrument, portfolio);
+                Buy(instrument, qty, price);
             }
         }
+
 
         //obsługa kolejki zleceń
         Long portfolioValueNew;
@@ -102,9 +85,34 @@ public class BuyingStrategy implements TradingStrategy {
         logger.info("validated buy: {}", validatedSell);
     }
 
+    //dywersyfikacja portfela
     public long BuyQty(Instrument instrument, Portfolio portfolio) {
         // TODO
         //jak dywersyfikowac?
+        int instrumentNumber = hashMapBought.keySet().size();
+        int percent = 100 / instrumentNumber;
+        Long portfolioValue;
+        if (portfolio instanceof Portfolio.Current pc) {
+            portfolioValue = pc.cash();
+
+            for (String symbol : hashMapBought.keySet()) {
+                List<Long> prices = hashMapBought.get(symbol);
+                Long closingPrice = prices.get(0);
+                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //number of shares to buy
+
+                if (signalToBuy == true) { // chyba bez tego
+                    String tradeID = UUID.randomUUID().toString();
+                    Double q = Math.floor(quantity);
+                    long qualityLong = q.longValue();
+                    //Double cp = Math.floor(closingPrice);
+                    //long closingPriceLong = cp.longValue();
+                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {    //sprawdza czy nie zostało wystawione takie zlecenie
+                        SubmitOrder.Buy order = new SubmitOrder.Buy(symbol, tradeID, qualityLong, closingPrice);
+                        queueToBuy.add(order);
+                    }
+                }
+            }
+        }
         return 1;
     }
 

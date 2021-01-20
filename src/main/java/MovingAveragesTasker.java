@@ -13,14 +13,12 @@ import java.util.List;
 public class MovingAveragesTasker {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final PriceCollector priceCollector;
-    private final MarketPlugin marketPlugin;
     private HashMap<String, List<Long>> prices;
 
     private final int shortPeriod;
     private final int longPeriod;
 
-    public MovingAveragesTasker(MarketPlugin marketPlugin, PriceCollector priceCollector, int shortPeriod, int longPeriod) {
-        this.marketPlugin = marketPlugin;
+    public MovingAveragesTasker(PriceCollector priceCollector, int shortPeriod, int longPeriod) {
         this.priceCollector = priceCollector;
         this.shortPeriod = shortPeriod;
         this.longPeriod = longPeriod;
@@ -33,7 +31,7 @@ public class MovingAveragesTasker {
     }
 
 
-    // srednie uwzględniając ostatnie transakcje dla wszystkich instrumentów
+    // srednie uwzględniające ostatnie transakcje dla wszystkich instrumentów
     public HashMap<String, Double> getAverages(boolean inShortPeriod, boolean withLastPrice) {
         HashMap<String, Double> averages = new HashMap<>();
 
