@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 // pobrana jest historia w całości, gotowa do dalszych przeróbek
 
-//generalnie gotowe
+// generalnie gotowe
 
 public class PriceCollector {
     private final MarketPlugin marketPlugin;

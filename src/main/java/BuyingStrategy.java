@@ -1,12 +1,10 @@
 import model.History;
 import model.Portfolio;
 import model.SubmitOrder;
-import model.Submitted;
-import model.order.Client;
+import model.order.Instrument;
+import model.order.ProcessedOrder;
 import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -95,6 +93,32 @@ public class BuyingStrategy implements TradingStrategy {
         }
 
 
+    }
+
+    public void Buy(Instrument instrument, long qty, long price) {
+        logger.info("Placing buy order of {} ", instrument.symbol());
+        final var buy = new SubmitOrder.Buy(instrument.symbol(), UUID.randomUUID().toString(), qty, price);
+        ValidatedOrder validatedSell = marketPlugin.buy(buy);
+        logger.info("validated buy: {}", validatedSell);
+    }
+
+    public long BuyQty(Instrument instrument, Portfolio portfolio) {
+        // TODO
+        //jak dywersyfikowac?
+        return 1;
+    }
+
+    //Pobiera cene ostatniej zrealizowanej transakcji
+    public long getPrice(Instrument instrument) {
+        long price = 0;
+        History history = marketPlugin.history(instrument);
+        if (history instanceof History.Correct hc) {
+            price = hc.bought()
+                    .stream()
+                    .sorted(Comparator.comparing(ProcessedOrder.Bought::created).reversed())
+                    .mapToLong(s -> s.offer().price()).findFirst().orElse(0);
+        }
+        return price;
     }
 
     @Override

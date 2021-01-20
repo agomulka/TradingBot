@@ -1,7 +1,8 @@
 import model.Portfolio;
 import model.SubmitOrder;
-import model.Submitted;
+import model.order.Instrument;
 import model.order.SubmittedOrder;
+import model.order.ValidatedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +101,28 @@ public class SellingStrategy implements TradingStrategy {
             }
         }
 
+    }
+
+    public void Sell(Instrument instrument, long qty, long price) {
+        logger.info("Placing sell order of {} ", instrument.symbol());
+        final var sell = new SubmitOrder.Sell(instrument.symbol(), UUID.randomUUID().toString(), qty, price);
+        ValidatedOrder validatedSell = marketPlugin.sell(sell);
+        logger.info("validated sell: {}", validatedSell);
+    }
+
+    public long SellQty(Instrument instrument, Portfolio portfolio) {
+        // TODO
+        //jak dywersyfikowac
+        return 1;
+    }
+
+    //Sprawdza czy posiadamy dany instrument w portfelu
+    public boolean CanISell(Instrument instrument, Portfolio portfolio) {
+        boolean contains;
+        if (portfolio instanceof Portfolio.Current pc) {
+            contains = pc.portfolio().stream().noneMatch(s -> s.instrument().equals(instrument));
+        } else contains = false;
+        return contains;
     }
 
     @Override
