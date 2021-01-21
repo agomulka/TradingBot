@@ -46,7 +46,6 @@ public class BuyingStrategy implements TradingStrategy {
             final var avgLB = longAveragesBefore.get(symbol);
 
             final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
-
             if (position == 1) { // tutaj sprawdzanie portfela? w tym miejscu w SellingStrategy jest sprawdzanie CanISell
                 final var price = getLastPrice(symbol);
                 final var qty = BuyQty(symbol, portfolio);
@@ -57,8 +56,6 @@ public class BuyingStrategy implements TradingStrategy {
         }
     }
 
-
-
     public void Buy(String symbol, long qty, long price) {
         logger.info("Placing buy order of {} ", symbol);
         final var buy = new SubmitOrder.Buy(symbol, UUID.randomUUID().toString(), qty, price);
@@ -68,19 +65,15 @@ public class BuyingStrategy implements TradingStrategy {
 
     //dywersyfikacja portfela
     public long BuyQty(String symbol, Portfolio portfolio) {
-        // TODO
-        //jak dywersyfikowac?
-
         long amount = (long) averagesTasker.getAverageAmount(symbol);
         return amount;
 
     }
 
     // sprawdzić czy wystarcza gotówki na zakup uwzględniając wiszące oferty
-  //  @Override
     public boolean canIBuy(String symbol, Portfolio portfolio, long price, long qty) {
         boolean contains = false;
-        if(portfolio instanceof Portfolio.Current pc) {   //sprawdzenie czy mamy juz oferte kupna na ten instrument, gdy już mamy to nie kupujemy
+        if(portfolio instanceof Portfolio.Current pc) {   //sprawdzenie czy mamy juz dokładnie taką samą oferte kupna
             boolean empty = pc.toBuy().stream()
                     .filter(x -> x.instrument().symbol().equals(symbol)
                             && x.bid().qty() == qty && x.bid().price() == price).findAny().isEmpty();
@@ -110,44 +103,3 @@ public class BuyingStrategy implements TradingStrategy {
 
 
 }
-
-
-//@Override
-//    public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
-//        Portfolio portfolio = marketPlugin.portfolio();
-//        if (portfolio instanceof Portfolio.Current pc) {
-//            Optional<SubmittedOrder.Buy> any = pc.toBuy().stream()
-//                    .filter(buy -> buy.instrument().symbol().equals(symbol)
-//                            && buy.bid().qty() == qualityLong && buy.bid().price() == closingPrice)
-//                    .findAny();
-//            return any.isEmpty(); //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
-//        }
-//        return false;
-//    }
-
-
-//        int instrumentNumber = hashMapBought.keySet().size();
-//        int percent = 100 / instrumentNumber;
-//        Long portfolioValue;
-//        if (portfolio instanceof Portfolio.Current pc) {
-//            portfolioValue = pc.cash();
-//
-//            for (String symbol : hashMapBought.keySet()) {
-//                List<Long> prices = hashMapBought.get(symbol);
-//                Long closingPrice = prices.get(0);
-//                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //number of shares to buy
-//
-//                if (signalToBuy == true) { // chyba bez tego
-//                    String tradeID = UUID.randomUUID().toString();
-//                    Double q = Math.floor(quantity);
-//                    long qualityLong = q.longValue();
-//                    //Double cp = Math.floor(closingPrice);
-//                    //long closingPriceLong = cp.longValue();
-//                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {    //sprawdza czy nie zostało wystawione takie zlecenie
-//                        SubmitOrder.Buy order = new SubmitOrder.Buy(symbol, tradeID, qualityLong, closingPrice);
-//                        queueToBuy.add(order);
-//                    }
-//                }
-//            }
-//        }
-//        return 1;

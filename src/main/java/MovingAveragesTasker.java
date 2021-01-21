@@ -31,7 +31,7 @@ public class MovingAveragesTasker {
     }
 
     public void updateAmounts() {
-        this.prices = collector.collectAmounts();
+        this.amounts = collector.collectAmounts();
     }
 
 
@@ -51,20 +51,21 @@ public class MovingAveragesTasker {
     public double getAverage(List<Long> list, int period, boolean withLastPrice) {
         List<Long> lastPrices;
 
+        if (list.size() == 0)
+            return 0;
+
         if (withLastPrice) {
             lastPrices = list.subList(0, Math.min(period, list.size()));
         } else {
             lastPrices = list.subList(1, Math.min(period + 1, list.size()));
         }
 
-        if (list.size() == 0)
-            return 0
-
         return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size(); // coś miało problem użycie .average() od razu
     }
 
     public double getAverageAmount(String symbol) {
-        List<Long> lastAmounts = amounts.get(symbol).subList(0, Math.min(amountPeriod, amounts.size()));
+        List<Long> lastAmounts = amounts.get(symbol);
+        lastAmounts = lastAmounts.subList(0, Math.min(amountPeriod, lastAmounts.size()));
 
         if (lastAmounts.size() == 0)
             return 0;
