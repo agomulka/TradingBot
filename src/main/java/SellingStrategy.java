@@ -65,32 +65,32 @@ public class SellingStrategy implements TradingStrategy {
         // TODO
         //jak dywersyfikowac
         long amount = (long) averagesTasker.getAverageAmount(symbol);
-        amount = Math.min(amount, portfolio); // TODO TUTAJ
+      //  amount = Math.min(amount, portfolio); // TODO TUTAJ
         return amount;
-
-        int instrumentNumber = hashMapSold.keySet().size();
-        int percent = 100 / instrumentNumber;
-        // int maxPortfolio = 10000;
-        Long portfolioValue;
-        if (portfolio instanceof Portfolio.Current pc) {
-            portfolioValue = pc.cash();
-            for (String symbol : hashMapSold.keySet()) {
-                List<Long> longs = hashMapSold.get(symbol);
-                Long closingPrice = longs.get(0);
-                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
-
-                if (signalToSell == true) { // chyba bez tego
-                    String tradeID = UUID.randomUUID().toString();
-                    Double q = Math.floor(quantity);
-                    long qualityLong = q.longValue();
-                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
-                        SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
-                        queueToSell.add(order);
-                    }
-                }
-            }
-        }
-        return 1;
+//
+//        int instrumentNumber = hashMapSold.keySet().size();
+//        int percent = 100 / instrumentNumber;
+//        // int maxPortfolio = 10000;
+//        Long portfolioValue;
+//        if (portfolio instanceof Portfolio.Current pc) {
+//            portfolioValue = pc.cash();
+//            for (String symbol : hashMapSold.keySet()) {
+//                List<Long> longs = hashMapSold.get(symbol);
+//                Long closingPrice = longs.get(0);
+//                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
+//
+//                if (signalToSell == true) { // chyba bez tego
+//                    String tradeID = UUID.randomUUID().toString();
+//                    Double q = Math.floor(quantity);
+//                    long qualityLong = q.longValue();
+//                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
+//                        SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
+//                        queueToSell.add(order);
+//                    }
+//                }
+//            }
+//        }
+//        return 1;
     }
 
     //Sprawdza czy posiadamy dany instrument w portfelu
