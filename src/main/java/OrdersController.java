@@ -1,51 +1,43 @@
 import model.Instruments;
-import model.order.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class OrdersController {
-
-    // TODO: could this be retrieved from the market at the time of registration
-    private static final long SESSION_INTERVAL = 60000;
+    private static final long SESSION_INTERVAL = 60;
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
 
-    private final Client client;
     private final MarketPlugin marketPlugin;
 
-    public OrdersController(Client client, MarketPlugin marketPlugin) {
-        this.client = client;
+    private MovingAveragesTasker averagesTasker;
+    private BuyingStrategy buyingStrategy;
+    private SellingStrategy sellingStrategy;
+
+    public OrdersController(MarketPlugin marketPlugin) {
         this.marketPlugin = marketPlugin;
     }
 
     public void run() {
         Collector collector = new Collector(marketPlugin);
-        MovingAveragesTasker averagesTasker = new MovingAveragesTasker(collector, 5, 30, 10);
-        BuyingStrategy buyingStrategy = new BuyingStrategy(marketPlugin, averagesTasker);
-        SellingStrategy sellingStrategy = new SellingStrategy(marketPlugin, averagesTasker);
-
-        while (true) {
-            averagesTasker.updatePrices();
-            averagesTasker.updateAmounts();
-            buyingStrategy.trade();
-            sellingStrategy.trade();
-            //TimeUnit.SECONDS(60);
-        }
-
-        // góra albo dół do usunięcia
+        averagesTasker = new MovingAveragesTasker(collector, 5, 30, 10);
+        buyingStrategy = new BuyingStrategy(marketPlugin, averagesTasker);
+        sellingStrategy = new SellingStrategy(marketPlugin, averagesTasker);
 
         Instruments instruments = marketPlugin.instruments();
         logger.info("returned available instruments: {}", instruments);
 
-        TimerTask sessionTask = new TimerTask() {
-            @Override
-            public void run() {
-                buyingStrategy.trade();
-                sellingStrategy.trade();
-            }
-        };
-        new Timer().scheduleAtFixedRate(sessionTask,0, SESSION_INTERVAL);
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+        scheduler.scheduleAtFixedRate(this::doOneGo, 0, SESSION_INTERVAL, TimeUnit.SECONDS);
+    }
+
+    public void doOneGo() {
+        averagesTasker.updatePrices();
+        averagesTasker.updateAmounts();
+        buyingStrategy.trade();
+        sellingStrategy.trade();
     }
 }

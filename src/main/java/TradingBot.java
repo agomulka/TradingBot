@@ -12,7 +12,7 @@ public class TradingBot {
         logger.info("Starting the application");
         MarketPlugin marketPlugin = new DefaultMarketPlugin(client, password);
 
-        OrdersController ordersController = new OrdersController(client, marketPlugin);
+        OrdersController ordersController = new OrdersController(marketPlugin);
 
         ordersController.run();
     }
