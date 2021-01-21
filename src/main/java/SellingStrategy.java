@@ -1,12 +1,14 @@
 import model.Portfolio;
 import model.SubmitOrder;
+import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-
 
 
 public class SellingStrategy implements TradingStrategy {
@@ -24,10 +26,10 @@ public class SellingStrategy implements TradingStrategy {
     public void trade() {
         Portfolio portfolio = marketPlugin.portfolio();
 
-//        if (portfolio instanceof Portfolio.Current pc) {
-//            final var cash = pc.cash();
-//            logger.info("Available cash: {}", cash);
-//        }
+        if (portfolio instanceof Portfolio.Current pc) {
+            final var cash = pc.cash();
+            logger.info("Available cash: {}", cash);
+        }
 
         HashMap<String, Double> shortAveragesLast = averagesTasker.getAveragePrices(true, true);
         HashMap<String, Double> shortAveragesBefore = averagesTasker.getAveragePrices(true, false);
@@ -43,12 +45,10 @@ public class SellingStrategy implements TradingStrategy {
 
             final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
 
-            if (position == -1) {
+            if (position == -1 && canISell(symbol, portfolio)) {
                 final var price = getLastPrice(symbol);
                 final var qty = SellQty(symbol, portfolio);
-                if (qty > 0 && checkIfNotSubmitted(symbol, qty, price)) {
-                    Sell(symbol, qty, price);
-                }
+                Sell(symbol, qty, (long) (1.1 * price));
             }
         }
     }
@@ -60,16 +60,14 @@ public class SellingStrategy implements TradingStrategy {
         logger.info("validated sell: {}", validatedSell);
     }
 
-    //zwroci 0 jeśli nie mamy danej akcji w portfelu
+    //dywersyfikacja portfela dla sprzedaży
     public long SellQty(String symbol, Portfolio portfolio) {
+        // TODO
+        //jak dywersyfikowac
         long amount = (long) averagesTasker.getAverageAmount(symbol);
-        if (portfolio instanceof Portfolio.Current pc) {
-            if (canISell(symbol, portfolio)) {
-                final var qtyInPortfolio = pc.portfolio().stream().filter(sell -> sell.instrument().symbol().equals(symbol)).findFirst().get().qty();
-                return Math.min(amount, qtyInPortfolio);
-            } else return 0;
-        } else return 0;
-
+      //  amount = Math.min(amount, portfolio); // TODO TUTAJ
+        return amount;
+//
 //        int instrumentNumber = hashMapSold.keySet().size();
 //        int percent = 100 / instrumentNumber;
 //        // int maxPortfolio = 10000;
@@ -81,17 +79,25 @@ public class SellingStrategy implements TradingStrategy {
 //                Long closingPrice = longs.get(0);
 //                float quantity = (portfolioValue * percent) / (100 * closingPrice);  //numbers of share to sell
 //
+//                if (signalToSell == true) { // chyba bez tego
+//                    String tradeID = UUID.randomUUID().toString();
+//                    Double q = Math.floor(quantity);
+//                    long qualityLong = q.longValue();
+//                    if (checkIfNotSubmitted(symbol, qualityLong, closingPrice)) {  //sprawdza czy nie zostało wystawione takie zlecenie
+//                        SubmitOrder.Sell order = new SubmitOrder.Sell(symbol, tradeID, qualityLong, closingPrice);
+//                        queueToSell.add(order);
+//                    }
+//                }
 //            }
 //        }
-
-
+//        return 1;
     }
 
     //Sprawdza czy posiadamy dany instrument w portfelu
     public boolean canISell(String symbol, Portfolio portfolio) {
         boolean contains;
         if (portfolio instanceof Portfolio.Current pc) {
-            contains = pc.portfolio().stream().anyMatch(s -> s.instrument().symbol().equals(symbol));
+            contains = pc.portfolio().stream().noneMatch(s -> s.instrument().symbol().equals(symbol));
         } else contains = false;
         return contains;
     }
@@ -102,13 +108,22 @@ public class SellingStrategy implements TradingStrategy {
     }
 
     @Override
-    //gdy nie ma takiego zlecenia zwraca true
-    public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
+    public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
+//        Submitted submitted = marketPlugin.submitted();
+//        if (submitted instanceof Submitted.Correct sc) {
+//            Optional<SubmittedOrder.Sell> any = sc.sell().stream()
+//                    .filter(sell -> sell.instrument().symbol().equals(symbol)
+//                            && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
+//                    .findAny();
+//            return any.isEmpty();  //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
+//        }
+//        return false;
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
-            return pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
-                    && sell.ask().qty() == qty && sell.ask().price() == price)
-                    .findAny().isEmpty();
+            Optional<SubmittedOrder.Sell> any = pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
+                    && sell.ask().qty() == qualityLong && sell.ask().price() == closingPrice)
+                    .findAny();
+            return any.isEmpty(); //gdy nie ma takiego zlecenia zwraca True i mozemy je kupić
         }
         return false;
     }
