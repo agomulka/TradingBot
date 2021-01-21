@@ -31,9 +31,8 @@ public class MovingAveragesTasker {
     }
 
     public void updateAmounts() {
-        this.prices = collector.collectAmounts();
+        this.amounts = collector.collectAmounts();
     }
-
 
     // srednie uwzględniające ostatnie transakcje dla wszystkich instrumentów
     public HashMap<String, Double> getAveragePrices(boolean inShortPeriod, boolean withLastPrice) {
@@ -58,13 +57,13 @@ public class MovingAveragesTasker {
         }
 
         if (list.size() == 0)
-            return 0
+            return 0;
 
         return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size(); // coś miało problem użycie .average() od razu
     }
 
     public double getAverageAmount(String symbol) {
-        List<Long> lastAmounts = amounts.get(symbol).subList(0, Math.min(amountPeriod, amounts.size()));
+        List<Long> lastAmounts = amounts.get(symbol).subList(0, Math.min(amountPeriod, amounts.get(symbol).size()));
 
         if (lastAmounts.size() == 0)
             return 0;
