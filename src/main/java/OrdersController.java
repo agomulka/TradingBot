@@ -36,16 +36,16 @@ public class OrdersController {
 
         // góra albo dół do usunięcia
 
-        Instruments instruments = marketPlugin.instruments();
-        logger.info("returned available instruments: {}", instruments);
-
-        TimerTask sessionTask = new TimerTask() {
-            @Override
-            public void run() {
-                buyingStrategy.trade();
-                sellingStrategy.trade();
-            }
-        };
-        new Timer().scheduleAtFixedRate(sessionTask,0, SESSION_INTERVAL);
+//        Instruments instruments = marketPlugin.instruments();
+//        logger.info("returned available instruments: {}", instruments);
+//
+//        TimerTask sessionTask = new TimerTask() {
+//            @Override
+//            public void run() {
+//                buyingStrategy.trade();
+//                sellingStrategy.trade();
+//            }
+//        };
+//        new Timer().scheduleAtFixedRate(sessionTask,0, SESSION_INTERVAL);
     }
 }

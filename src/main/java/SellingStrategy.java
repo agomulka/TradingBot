@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 
+
 public class SellingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final MarketPlugin marketPlugin;
@@ -64,7 +65,7 @@ public class SellingStrategy implements TradingStrategy {
         long amount = (long) averagesTasker.getAverageAmount(symbol);
         if (portfolio instanceof Portfolio.Current pc) {
             if (canISell(symbol, portfolio)) {
-                final var qtyInPortfolio = pc.portfolio().stream().findFirst().filter(sell -> sell.instrument().symbol().equals(symbol)).get().qty();
+                final var qtyInPortfolio = pc.portfolio().stream().filter(sell -> sell.instrument().symbol().equals(symbol)).findFirst().get().qty();
                 return Math.min(amount, qtyInPortfolio);
             } else return 0;
         } else return 0;
@@ -86,11 +87,11 @@ public class SellingStrategy implements TradingStrategy {
 
     }
 
-    //Sprawdza czy posiadamy dany instrument w portfelu i czy nie ma wystawionej juz takiej akcji
+    //Sprawdza czy posiadamy dany instrument w portfelu
     public boolean canISell(String symbol, Portfolio portfolio) {
         boolean contains;
         if (portfolio instanceof Portfolio.Current pc) {
-            contains = pc.portfolio().stream().noneMatch(s -> s.instrument().symbol().equals(symbol));
+            contains = pc.portfolio().stream().anyMatch(s -> s.instrument().symbol().equals(symbol));
         } else contains = false;
         return contains;
     }
@@ -101,6 +102,7 @@ public class SellingStrategy implements TradingStrategy {
     }
 
     @Override
+    //gdy nie ma takiego zlecenia zwraca true
     public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {

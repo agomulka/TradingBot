@@ -31,7 +31,7 @@ public class MovingAveragesTasker {
     }
 
     public void updateAmounts() {
-        this.prices = collector.collectAmounts();
+        this.amounts = collector.collectAmounts();
     }
 
     // srednie uwzględniające ostatnie transakcje dla wszystkich instrumentów
@@ -63,7 +63,7 @@ public class MovingAveragesTasker {
     }
 
     public double getAverageAmount(String symbol) {
-        List<Long> lastAmounts = amounts.get(symbol).subList(0, Math.min(amountPeriod, amounts.size()));
+        List<Long> lastAmounts = amounts.get(symbol).subList(0, Math.min(amountPeriod, amounts.get(symbol).size()));
 
         if (lastAmounts.size() == 0)
             return 0;
