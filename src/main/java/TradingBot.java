@@ -1,3 +1,4 @@
+import model.Settings;
 import model.order.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,8 @@ public class TradingBot {
     public static void main(String[] args) {
         logger.info("Starting the application");
         MarketPlugin marketPlugin = new DefaultMarketPlugin(client, password);
+
+        Settings.readFile("parameters.json");
 
         OrdersController ordersController = new OrdersController(marketPlugin);
 

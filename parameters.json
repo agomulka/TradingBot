@@ -1,0 +1,6 @@
+{
+  "shortPeriod": 5,
+  "longPeriod": 10,
+  "avgAmountPeriod": 7,
+  "sessionInterval": 60,
+}

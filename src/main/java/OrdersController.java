@@ -1,4 +1,5 @@
 import model.Instruments;
+import model.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,7 +8,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class OrdersController {
-    private static final long SESSION_INTERVAL = 60;
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
 
     private final MarketPlugin marketPlugin;
@@ -22,7 +22,7 @@ public class OrdersController {
 
     public void run() {
         Collector collector = new Collector(marketPlugin);
-        averagesTasker = new MovingAveragesTasker(collector, 5, 30, 10);
+        averagesTasker = new MovingAveragesTasker(collector, Settings.SHORT_PERIOD, Settings.LONG_PERIOD, Settings.AVG_AMOUNT_PERIOD);
         buyingStrategy = new BuyingStrategy(marketPlugin, averagesTasker);
         sellingStrategy = new SellingStrategy(marketPlugin, averagesTasker);
 
@@ -31,7 +31,7 @@ public class OrdersController {
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-        scheduler.scheduleAtFixedRate(this::doOneGo, 0, SESSION_INTERVAL, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::doOneGo, 0, Settings.SESSION_INTERVAL, TimeUnit.SECONDS);
     }
 
     public void doOneGo() {
