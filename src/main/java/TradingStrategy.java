@@ -15,5 +15,6 @@ public interface TradingStrategy {
      * @param closingPrice Offered price.
      * @return boolean True if such an offer was not placed.
      */
-    boolean notSubmitted(String symbol, Long qualityLong, Long closingPrice);
+    boolean notSubmitted(Portfolio portfolio, String symbol, Long qty, Long price);
+
 }

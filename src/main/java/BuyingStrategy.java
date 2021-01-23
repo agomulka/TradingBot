@@ -92,11 +92,8 @@ public record BuyingStrategy(MarketPlugin marketPlugin,
      */
     public boolean canIBuy(String symbol, Portfolio portfolio, long price, long qty) {
         boolean contains = false;
-        if (portfolio instanceof Portfolio.Current pc) {   // check if we have the same buy offer
-            boolean empty = pc.toBuy().stream()
-                    .filter(x -> x.instrument().symbol().equals(symbol)
-                            && x.bid().qty() == qty && x.bid().price() == price).findAny().isEmpty();
-            if (empty) {             // we don't have the same offer in toBuy
+        if(portfolio instanceof Portfolio.Current pc) {
+            if(checkIfNotSubmitted(portfolio, symbol, qty, price)) { // check if we have the same buy offer
                 final var cash = pc.cash();  // cash in wallet
                 Long blockedCash = pc.toBuy().stream()
                         .map(x -> x.bid().price() * x.bid().qty())
@@ -127,7 +124,12 @@ public record BuyingStrategy(MarketPlugin marketPlugin,
      * @return boolean True if such an offer was not placed.
      */
     @Override
-    public boolean notSubmitted(String symbol, Long qualityLong, Long closingPrice) {
+    public boolean notSubmitted(Portfolio portfolio, String symbol, Long qty, Long price) {
+        if(portfolio instanceof Portfolio.Current pc) {
+            return pc.toBuy().stream()
+                    .filter(x -> x.instrument().symbol().equals(symbol)
+                            && x.bid().qty() == qty && x.bid().price() == price).findAny().isEmpty();
+        }
         return false;
     }
 }

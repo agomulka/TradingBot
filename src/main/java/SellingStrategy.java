@@ -44,7 +44,7 @@ public record SellingStrategy(MarketPlugin marketPlugin,
             if (signal == -1) {
                 final var price = getLastPrice(symbol);
                 final var qty = sellQty(symbol, portfolio);
-                if (qty > 0 && notSubmitted(symbol, qty, price)) {
+                if (qty > 0 && notSubmitted(portfolio, symbol, qty, price)) {
                     sell(symbol, qty, price);
                 }
             }
@@ -113,14 +113,14 @@ public record SellingStrategy(MarketPlugin marketPlugin,
     /**
      * Check if such an offer was not placed before.
      *
-     * @param symbol Stock's symbol.
-     * @param qty    Quantity in the offer.
-     * @param price  Offered price.
+     * @param portfolio Our portfolio.
+     * @param symbol    Stock's symbol.
+     * @param qty       Quantity in the offer.
+     * @param price     Offered price.
      * @return boolean True if such an offer was not placed.
      */
     @Override
-    public boolean notSubmitted(String symbol, Long qty, Long price) {
-        Portfolio portfolio = marketPlugin.portfolio();
+    public boolean notSubmitted(Portfolio portfolio, String symbol, Long qty, Long price) {
         if (portfolio instanceof Portfolio.Current pc) {
             return pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
                     && sell.ask().qty() == qty && sell.ask().price() == price)
