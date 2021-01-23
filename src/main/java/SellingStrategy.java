@@ -42,7 +42,7 @@ public class SellingStrategy implements TradingStrategy {
             if (position == -1) {
                 final var price = getLastPrice(symbol);
                 final var qty = SellQty(symbol, portfolio);
-                if (qty > 0 && checkIfNotSubmitted(symbol, qty, price)) {
+                if (qty > 0 && checkIfNotSubmitted(portfolio, symbol, qty, price)) {
                     Sell(symbol, qty, price);
                 }
             }
@@ -83,8 +83,7 @@ public class SellingStrategy implements TradingStrategy {
 
     @Override
     //gdy nie ma takiego zlecenia zwraca true
-    public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
-        Portfolio portfolio = marketPlugin.portfolio();
+    public boolean checkIfNotSubmitted(Portfolio portfolio, String symbol, Long qty, Long price) {
         if (portfolio instanceof Portfolio.Current pc) {
             return pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
                     && sell.ask().qty() == qty && sell.ask().price() == price)

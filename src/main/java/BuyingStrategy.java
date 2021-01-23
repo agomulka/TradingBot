@@ -74,7 +74,7 @@ public class BuyingStrategy implements TradingStrategy {
     public boolean canIBuy(String symbol, Portfolio portfolio, long price, long qty) {
         boolean contains = false;
         if(portfolio instanceof Portfolio.Current pc) {
-            if(checkIfNotSubmitted(symbol, qty, price)) { //sprawdzenie czy mamy juz dokładnie taką samą oferte kupna
+            if(checkIfNotSubmitted(portfolio, symbol, qty, price)) { //sprawdzenie czy mamy juz dokładnie taką samą oferte kupna
                 final var cash = pc.cash();  //gotowka w portfelu
                 Long blockedCash = pc.toBuy().stream()
                         .map(x -> x.bid().price() * x.bid().qty())
@@ -94,8 +94,7 @@ public class BuyingStrategy implements TradingStrategy {
     }
 
     @Override
-    public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
-        Portfolio portfolio = marketPlugin.portfolio();
+    public boolean checkIfNotSubmitted(Portfolio portfolio, String symbol, Long qty, Long price) {
         if(portfolio instanceof Portfolio.Current pc) {
             return pc.toBuy().stream()
                     .filter(x -> x.instrument().symbol().equals(symbol)
