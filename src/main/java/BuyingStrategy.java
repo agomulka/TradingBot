@@ -1,29 +1,32 @@
 import model.Portfolio;
 import model.SubmitOrder;
-import model.order.SubmittedOrder;
 import model.order.ValidatedOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 
+/**
+ * The main class for buying strategy.
+ * Connected to the market to trade on; uses MovingAveragesTasker.
+ */
 public class BuyingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final MarketPlugin marketPlugin;
 
     private final MovingAveragesTasker averagesTasker;
 
-
     public BuyingStrategy(MarketPlugin marketPlugin, MovingAveragesTasker averagesTasker) {
         this.marketPlugin = marketPlugin;
         this.averagesTasker = averagesTasker;
     }
 
+
+    /**
+     * Look for an opportunity and don't miss it!
+     */
     @Override
     public void trade() {
         Portfolio portfolio = marketPlugin.portfolio();
@@ -45,61 +48,90 @@ public class BuyingStrategy implements TradingStrategy {
             final var avgL = longAveragesLast.get(symbol);
             final var avgLB = longAveragesBefore.get(symbol);
 
-            final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
-            if (position == 1) { // tutaj sprawdzanie portfela? w tym miejscu w SellingStrategy jest sprawdzanie CanISell
+            final var signal = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
+
+            if (signal == 1) {
                 final var price = getLastPrice(symbol);
-                final var qty = BuyQty(symbol, portfolio);
+                final var qty = buyQty(symbol);
                 if (canIBuy(symbol, portfolio, price, qty)) {
-                    Buy(symbol, qty, price);
+                    buy(symbol, qty, price);
                 }
             }
         }
     }
 
-    public void Buy(String symbol, long qty, long price) {
+    /**
+     * Buy a stock.
+     *
+     * @param symbol Symbol of the stock.
+     * @param qty    Quantity of the offer.
+     * @param price  Unit price of the offer.
+     */
+    public void buy(String symbol, long qty, long price) {
         logger.info("Placing buy order of {} ", symbol);
         final var buy = new SubmitOrder.Buy(symbol, UUID.randomUUID().toString(), qty, price);
         ValidatedOrder validatedSell = marketPlugin.buy(buy);
         logger.info("validated buy: {}", validatedSell);
     }
 
-    //dywersyfikacja portfela
-    public long BuyQty(String symbol, Portfolio portfolio) {
-        long amount = (long) averagesTasker.getAverageAmount(symbol);
-        return amount;
-
+    /**
+     * Calculate quantity of a stock for new offer.
+     *
+     * @param symbol Stock's symbol.
+     * @return long Amount.
+     */
+    public long buyQty(String symbol) {
+        return (long) averagesTasker.getAverageAmount(symbol);
     }
 
-    // sprawdzić czy wystarcza gotówki na zakup uwzględniając wiszące oferty
+
+    /**
+     * Check if there is enough money for new buy (considering open offers) and not such an offer placed before.
+     *
+     * @param symbol    Symbol of the stock.
+     * @param portfolio Our portfolio.
+     * @param price     Considered price.
+     * @param qty       Considered quantity.
+     * @return boolean True if I can buy.
+     */
     public boolean canIBuy(String symbol, Portfolio portfolio, long price, long qty) {
         boolean contains = false;
-        if(portfolio instanceof Portfolio.Current pc) {   //sprawdzenie czy mamy juz dokładnie taką samą oferte kupna
+        if (portfolio instanceof Portfolio.Current pc) {   // check if we have the same buy offer
             boolean empty = pc.toBuy().stream()
                     .filter(x -> x.instrument().symbol().equals(symbol)
                             && x.bid().qty() == qty && x.bid().price() == price).findAny().isEmpty();
-            if (empty) {             //nie mamy dokładnie takiej samej oferty w toBuy
-                final var cash = pc.cash();  //gotowka w portfelu
+            if (empty) {             // we don't have the same offer in toBuy
+                final var cash = pc.cash();  // cash in wallet
                 Long blockedCash = pc.toBuy().stream()
                         .map(x -> x.bid().price() * x.bid().qty())
-                        .reduce((long) 0, (a, b) -> a + b);  //koszt wszystkich wiszących ofert
-                long availableCash = cash - blockedCash;    //gotowka ktora mozemy wydac
-                if (price * qty < availableCash) {
-                    contains = true;     // stać nas na kupno
-                } else contains = false;
+                        .reduce((long) 0, Long::sum);  // cost of all still open offers
+                long availableCash = cash - blockedCash;    // money we can spend
+                contains = price * qty < availableCash;     // we can afford it
             }
         }
-       return contains;
+        return contains;
     }
 
-    //Pobiera cene ostatniej zrealizowanej transakcji
+    /**
+     * Get price of last transaction of a stock.
+     *
+     * @param symbol Symbol of the stock.
+     * @return long Amount.
+     */
     public long getLastPrice(String symbol) {
         return averagesTasker.getPrices().get(symbol).get(0);
     }
 
+    /**
+     * Check if such an offer was not placed before.
+     *
+     * @param symbol       Stock's symbol.
+     * @param qualityLong  Quantity in the offer.
+     * @param closingPrice Offered price.
+     * @return boolean True if such an offer was not placed.
+     */
     @Override
-    public boolean checkIfNotSubmitted(String symbol, Long qualityLong, Long closingPrice) {
+    public boolean notSubmitted(String symbol, Long qualityLong, Long closingPrice) {
         return false;
     }
-
-
 }

@@ -5,18 +5,30 @@ import java.util.HashMap;
 import java.util.List;
 
 
-// klasa obsługująca wszystko, co potrzebne do wyliczania średnich i sygnałów dla tej strategii
-// (ale nie sprawdza konta ani czy mamy akcje - to robią Buying- i SellingStrategy!!)
-
+/**
+ * The class storing prices and amounts and calculating all averages used by BuyingStrategy and SellingStrategy.
+ */
 public class MovingAveragesTasker {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
+
     private final Collector collector;
+
     private final int shortPeriod;
     private final int longPeriod;
     private final int amountPeriod;
+
     private HashMap<String, List<Long>> prices;
     private HashMap<String, List<Long>> amounts;
 
+
+    /**
+     * Create a tasker.
+     *
+     * @param collector    Collector collecting prices and amounts for the tasker.
+     * @param shortPeriod  Length of the shorter price averages.
+     * @param longPeriod   Length of the longer price averages.
+     * @param amountPeriod Length of the averages of amounts.
+     */
     public MovingAveragesTasker(Collector collector, int shortPeriod, int longPeriod, int amountPeriod) {
         this.collector = collector;
         this.shortPeriod = shortPeriod;
@@ -25,17 +37,28 @@ public class MovingAveragesTasker {
     }
 
 
-    // uaktualnia historię cen (żeby nie powtarzać priceCollector.collectPrices())
+    /**
+     * Update prices known by the tasker.
+     */
     public void updatePrices() {
         this.prices = collector.collectPrices();
     }
 
+    /**
+     * Same as above but for amounts.
+     */
     public void updateAmounts() {
         this.amounts = collector.collectAmounts();
     }
 
 
-    // srednie uwzględniające ostatnie transakcje dla wszystkich instrumentów
+    /**
+     * Calculate average prices of last operations for all instruments.
+     *
+     * @param inShortPeriod Whether the averages should be shorter or longer.
+     * @param withLastPrice Whether the prices to calculate average of contain last prices.
+     * @return Map between stocks symbols and their average prices.
+     */
     public HashMap<String, Double> getAveragePrices(boolean inShortPeriod, boolean withLastPrice) {
         HashMap<String, Double> averages = new HashMap<>();
 
@@ -47,14 +70,21 @@ public class MovingAveragesTasker {
         return averages;
     }
 
-    // pomocniczo dla metody wyżej
-    public double getAverage(List<Long> list, int period, boolean withLastPrice) {
+    /**
+     * Auxiliary method for the one above.
+     *
+     * @param list     List of elements to calculate average of.
+     * @param period   Number of elements from the list to take for the average.
+     * @param withLast Whether to include the last in time element (first in list) in calculation.
+     * @return double The average.
+     */
+    public double getAverage(List<Long> list, int period, boolean withLast) {
         List<Long> lastPrices;
 
         if (list.size() == 0)
             return 0;
 
-        if (withLastPrice) {
+        if (withLast) {
             lastPrices = list.subList(0, Math.min(period, list.size()));
         } else {
             lastPrices = list.subList(1, Math.min(period + 1, list.size()));
@@ -63,6 +93,12 @@ public class MovingAveragesTasker {
         return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size(); // coś miało problem użycie .average() od razu
     }
 
+    /**
+     * Calculate average amount of last operations for an instrument.
+     *
+     * @param symbol Symbol of the instrument.
+     * @return double The average.
+     */
     public double getAverageAmount(String symbol) {
         List<Long> lastAmounts = amounts.get(symbol);
         lastAmounts = lastAmounts.subList(0, Math.min(amountPeriod, lastAmounts.size()));
@@ -73,14 +109,28 @@ public class MovingAveragesTasker {
         return lastAmounts.stream().mapToDouble(a -> a).sum() / (double) lastAmounts.size(); // coś miało problem użycie .average() od razu
     }
 
-    //Okresla polozenie srednich wzgledem siebie. Gdy wykresy przecinaja sie (nastepuje zmiana z 0 na 1 lub 1 na 0) mamy sygnal do sprzedazy lub kupna
+
+    /**
+     * Figure out the relation between averages.
+     * If prices' plots cross we have signal to sell or buy.
+     * General implementation, specific usage depends on strategy.
+     *
+     * @param a First price.
+     * @param b Second price.
+     * @return int 0, 1 or 3
+     */
     public int signal(double a, double b) {
         int signal = 3;
-        if (a > b) signal = 1;
+        if (a >= b) signal = 1;
         else if (a < b) signal = 0;
         return signal;
     }
 
+    /**
+     * Self-explanatory
+     *
+     * @return Map between stocks symbols and their historical prices.
+     */
     public HashMap<String, List<Long>> getPrices() {
         return prices;
     }

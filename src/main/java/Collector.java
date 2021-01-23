@@ -8,24 +8,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// history bought == history sold
-// pobieramy jedną z nich, bo są takie same
-// zwracamy hashMape<Symbol instrumentu, lista cen>
 
-// pobrana jest historia w całości, gotowa do dalszych przeróbek
-
-
+/**
+ * The class responsible for collecting amounts and prices of stocks from their histories.
+ * Since bought and sold histories are the same no such distinction is needed.
+ */
 public class Collector {
     private final MarketPlugin marketPlugin;
 
+    /**
+     * Make a collector connected to a market.
+     *
+     * @param marketPlugin The MarketPlugin to connect to.
+     */
     public Collector(MarketPlugin marketPlugin) {
         this.marketPlugin = marketPlugin;
     }
 
+
+    /**
+     * Collect fresh history of prices change for all stocks.
+     *
+     * @return Map between stock symbols and lists of prices.
+     */
     public HashMap<String, List<Long>> collectPrices() {
         HashMap<String, List<Long>> hashMap = new HashMap<>();
 
-        //download prices, sort them and put into hashMap
+        // download prices, sort them and put into hashMap
         Instruments instruments = marketPlugin.instruments();
         List<Long> priceList;
 
@@ -45,6 +54,11 @@ public class Collector {
         return hashMap;
     }
 
+    /**
+     * Collect fresh history of for all offers, all stocks.
+     *
+     * @return Map between stock symbols and lists of amounts.
+     */
     public HashMap<String, List<Long>> collectAmounts() {
         HashMap<String, List<Long>> hashMap = new HashMap<>();
 

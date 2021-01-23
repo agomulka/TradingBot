@@ -8,7 +8,10 @@ import java.util.HashMap;
 import java.util.UUID;
 
 
-
+/**
+ * The main class for selling strategy.
+ * Connected to the market to trade on; uses MovingAveragesTasker.
+ */
 public class SellingStrategy implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
     private final MarketPlugin marketPlugin;
@@ -20,10 +23,13 @@ public class SellingStrategy implements TradingStrategy {
         this.averagesTasker = averagesTasker;
     }
 
+
+    /**
+     * Look for an opportunity and don't miss it!
+     */
     @Override
     public void trade() {
         Portfolio portfolio = marketPlugin.portfolio();
-
 
         HashMap<String, Double> shortAveragesLast = averagesTasker.getAveragePrices(true, true);
         HashMap<String, Double> shortAveragesBefore = averagesTasker.getAveragePrices(true, false);
@@ -37,37 +43,59 @@ public class SellingStrategy implements TradingStrategy {
             final var avgL = longAveragesLast.get(symbol);
             final var avgLB = longAveragesBefore.get(symbol);
 
-            final var position = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
+            final var signal = averagesTasker.signal(avgS, avgL) - averagesTasker.signal(avgSB, avgLB);
 
-            if (position == -1) {
+            if (signal == -1) {
                 final var price = getLastPrice(symbol);
-                final var qty = SellQty(symbol, portfolio);
-                if (qty > 0 && checkIfNotSubmitted(symbol, qty, price)) {
-                    Sell(symbol, qty, price);
+                final var qty = sellQty(symbol, portfolio);
+                if (qty > 0 && notSubmitted(symbol, qty, price)) {
+                    sell(symbol, qty, price);
                 }
             }
         }
     }
 
-    public void Sell(String symbol, long qty, long price) {
+    /**
+     * sell a stock.
+     *
+     * @param symbol Symbol of the stock.
+     * @param qty    Quantity of the offer.
+     * @param price  Unit price of the offer.
+     */
+    public void sell(String symbol, long qty, long price) {
         logger.info("Placing sell order of {} ", symbol);
         final var sell = new SubmitOrder.Sell(symbol, UUID.randomUUID().toString(), qty, price);
         ValidatedOrder validatedSell = marketPlugin.sell(sell);
         logger.info("validated sell: {}", validatedSell);
     }
 
-    //zwroci 0 jeśli nie mamy danej akcji w portfelu
-    public long SellQty(String symbol, Portfolio portfolio) {
+    /**
+     * Calculate quantity of a stock for new offer.
+     *
+     * @param symbol Stock's symbol.
+     * @return long Amount, 0 if no stocks in portfolio.
+     */
+    public long sellQty(String symbol, Portfolio portfolio) {
         long amount = (long) averagesTasker.getAverageAmount(symbol);
         if (portfolio instanceof Portfolio.Current pc) {
             if (canISell(symbol, portfolio)) {
-                final var qtyInPortfolio = pc.portfolio().stream().filter(sell -> sell.instrument().symbol().equals(symbol)).findFirst().get().qty();
+                final var qtyInPortfolio = pc.portfolio()
+                        .stream().filter(sell -> sell.instrument()
+                                .symbol().equals(symbol))
+                        .findFirst().get().qty();
                 return Math.min(amount, qtyInPortfolio);
             } else return 0;
         } else return 0;
     }
 
-    //Sprawdza czy posiadamy dany instrument w portfelu
+
+    /**
+     * Check if there are stocks in portfolio.
+     *
+     * @param symbol    Symbol of the stock.
+     * @param portfolio Our portfolio.
+     * @return boolean True if I can sell.
+     */
     public boolean canISell(String symbol, Portfolio portfolio) {
         boolean contains;
         if (portfolio instanceof Portfolio.Current pc) {
@@ -76,14 +104,26 @@ public class SellingStrategy implements TradingStrategy {
         return contains;
     }
 
-    //Pobiera cene ostatniej zrealizowanej transakcji
+    /**
+     * Get price of last transaction of a stock.
+     *
+     * @param symbol Symbol of the stock.
+     * @return long Amount.
+     */
     public long getLastPrice(String symbol) {
         return averagesTasker.getPrices().get(symbol).get(0);
     }
 
+    /**
+     * Check if such an offer was not placed before.
+     *
+     * @param symbol Stock's symbol.
+     * @param qty    Quantity in the offer.
+     * @param price  Offered price.
+     * @return boolean True if such an offer was not placed.
+     */
     @Override
-    //gdy nie ma takiego zlecenia zwraca true
-    public boolean checkIfNotSubmitted(String symbol, Long qty, Long price) {
+    public boolean notSubmitted(String symbol, Long qty, Long price) {
         Portfolio portfolio = marketPlugin.portfolio();
         if (portfolio instanceof Portfolio.Current pc) {
             return pc.toSell().stream().filter(sell -> sell.instrument().symbol().equals(symbol)
