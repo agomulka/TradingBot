@@ -12,20 +12,10 @@ import java.util.stream.Collectors;
 /**
  * The class responsible for collecting amounts and prices of stocks from their histories.
  * Since bought and sold histories are the same no such distinction is needed.
+ *
+ * @param marketPlugin The MarketPlugin to connect to.
  */
-public class Collector {
-    private final MarketPlugin marketPlugin;
-
-    /**
-     * Make a collector connected to a market.
-     *
-     * @param marketPlugin The MarketPlugin to connect to.
-     */
-    public Collector(MarketPlugin marketPlugin) {
-        this.marketPlugin = marketPlugin;
-    }
-
-
+public record Collector(MarketPlugin marketPlugin) {
     /**
      * Collect fresh history of prices change for all stocks.
      *

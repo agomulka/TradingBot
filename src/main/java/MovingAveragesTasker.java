@@ -1,6 +1,3 @@
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 
@@ -9,8 +6,6 @@ import java.util.List;
  * The class storing prices and amounts and calculating all averages used by BuyingStrategy and SellingStrategy.
  */
 public class MovingAveragesTasker {
-    private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
-
     private final Collector collector;
 
     private final int shortPeriod;
@@ -90,7 +85,7 @@ public class MovingAveragesTasker {
             lastPrices = list.subList(1, Math.min(period + 1, list.size()));
         }
 
-        return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size(); // coś miało problem użycie .average() od razu
+        return lastPrices.stream().mapToDouble(a -> a).sum() / (double) lastPrices.size();
     }
 
     /**
@@ -106,7 +101,7 @@ public class MovingAveragesTasker {
         if (lastAmounts.size() == 0)
             return 0;
 
-        return lastAmounts.stream().mapToDouble(a -> a).sum() / (double) lastAmounts.size(); // coś miało problem użycie .average() od razu
+        return lastAmounts.stream().mapToDouble(a -> a).sum() / (double) lastAmounts.size();
     }
 
 

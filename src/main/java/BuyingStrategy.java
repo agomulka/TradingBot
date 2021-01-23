@@ -11,17 +11,13 @@ import java.util.UUID;
 /**
  * The main class for buying strategy.
  * Connected to the market to trade on; uses MovingAveragesTasker.
+ *
+ * @param marketPlugin   Plugin to the market to trade on.
+ * @param averagesTasker Tasker calculating all averages.
  */
-public class BuyingStrategy implements TradingStrategy {
+public record BuyingStrategy(MarketPlugin marketPlugin,
+                             MovingAveragesTasker averagesTasker) implements TradingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(OrdersController.class);
-    private final MarketPlugin marketPlugin;
-
-    private final MovingAveragesTasker averagesTasker;
-
-    public BuyingStrategy(MarketPlugin marketPlugin, MovingAveragesTasker averagesTasker) {
-        this.marketPlugin = marketPlugin;
-        this.averagesTasker = averagesTasker;
-    }
 
 
     /**
