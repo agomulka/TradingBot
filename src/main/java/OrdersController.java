@@ -1,5 +1,4 @@
 import model.Instruments;
-import model.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +21,7 @@ public class OrdersController {
 
     /**
      * Create a controller.
+     *
      * @param marketPlugin The MarketPlugin of a market to trade on.
      */
     public OrdersController(MarketPlugin marketPlugin) {
