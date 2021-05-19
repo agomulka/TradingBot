@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
  * Runner for the daytrading.
  */
 public class TradingBot {
-    private static final Client client = new Client("client03");
-    private static final String password = "Jwnkq3JA";
+    private static final Client client = new Client("client");
+    private static final String password;
     private static final Logger logger = LoggerFactory.getLogger(TradingBot.class);
 
     public static void main(String[] args) {
